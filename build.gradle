@@ -1,0 +1,45 @@
+plugins {
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+    id 'com.gradle.plugin-publish' version '0.20.0'
+}
+
+group 'com.trileuco'
+version version
+description = 'Gradle plugin to help publishing bom to Dependency-track'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+    withSourcesJar()
+}
+
+repositories {
+    mavenCentral()
+}
+
+pluginBundle {
+    website = 'https://github.com/trileuco/dependency-track-gradle'
+    vcsUrl = 'https://github.com/trileuco/dependency-track-gradle.git'
+    tags = ['dependency-track', 'cyclonedx', 'vulnerability', 'dependency']
+}
+
+gradlePlugin {
+    plugins {
+        dependencyTrackPlugin {
+            id = 'com.trileuco.dependency-track-gradle'
+            displayName = 'Dependecy-track for Gradle'
+            description = 'Gradle plugin to help publishing bom to Dependency-track'
+            implementationClass = 'com.trileuco.gradle.DependencyTrackPlugin'
+        }
+    }
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+}
+
+test {
+    useJUnitPlatform()
+}
