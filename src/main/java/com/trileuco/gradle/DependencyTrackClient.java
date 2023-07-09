@@ -1,18 +1,25 @@
 package com.trileuco.gradle;
 
+import com.google.gson.JsonObject;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
+import org.gradle.api.logging.Logger;
+import org.gradle.api.logging.Logging;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Base64;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.gradle.api.logging.Logger;
-import org.gradle.api.logging.Logging;
 
 public class DependencyTrackClient {
   private static final Logger LOGGER = Logging.getLogger(DependencyTrackClient.class);
@@ -26,38 +33,49 @@ public class DependencyTrackClient {
   public DependencyTrackClient(String host, String realm, String apiKey) {
     this.uri = buildUri(host, realm);
     this.apiKey = apiKey;
-    this.httpClient = HttpClient.newHttpClient();
+    this.httpClient = HttpClientBuilder.create().build();
   }
 
-  public void publish(String projectId, File bom) {
+  public void publish(String projectName, String projectVersion, File bom) {
     if (bom == null) {
       throw new IllegalArgumentException("bom cannot be empty");
     }
-    if (projectId == null || projectId.isEmpty()) {
-      throw new IllegalArgumentException("projectId cannot be empty");
+    if (projectName == null || projectName.isEmpty()) {
+      throw new IllegalArgumentException("projectName cannot be empty");
+    }
+    if (projectVersion == null || projectVersion.isEmpty()) {
+      throw new IllegalArgumentException("projectVersion cannot be empty");
     }
 
     LOGGER.info("Sending bom to: {}", uri);
-    String body = buildBody(projectId, bom);
-    LOGGER.debug("Body content: {}", body);
-    HttpRequest httpRequest = buildRequest(uri, body);
+    DTrackBody body = new DTrackBody(projectName, projectVersion, true, encodeBom(bom));
+    HttpUriRequest httpRequest = buildRequest(uri, body);
 
     try {
-      HttpResponse<String> response = this.httpClient.send(httpRequest, BodyHandlers.ofString());
-      String responseBody = response.body();
+      HttpResponse response = this.httpClient.execute(httpRequest);
+      String responseBody = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
       LOGGER.info("Response: {}", responseBody);
-    } catch (IOException | InterruptedException e) {
+    } catch (Exception e) {
       LOGGER.error("Something went wrong sending the bom", e);
       Thread.currentThread().interrupt();
     }
   }
 
-  private HttpRequest buildRequest(URI dTrackUri, String body) {
-    return HttpRequest.newBuilder(dTrackUri)
-        .header(HEADER_API_KEY_NAME, this.apiKey)
-        .header("Content-Type", "application/json")
-        .PUT(HttpRequest.BodyPublishers.ofString(body))
-        .build();
+  public void delete(String projectName, String projectVersion) {
+
+  }
+
+  private HttpUriRequest buildRequest(URI dTrackUri, DTrackBody body) {
+    JsonObject jsonObject = new JsonObject();
+    jsonObject.addProperty("projectName", body.getProjectName());
+    jsonObject.addProperty("autoCreate",  body.isAutoCreate());
+    jsonObject.addProperty("projectVersion", body.getProjectVersion());
+    jsonObject.addProperty("bom", body.getBom());
+    StringEntity json = new StringEntity(jsonObject.toString(), ContentType.APPLICATION_JSON);
+    return RequestBuilder.put(dTrackUri)
+            .addHeader(HEADER_API_KEY_NAME, this.apiKey)
+            .setEntity(json)
+            .build();
   }
 
   private URI buildUri(String host, String realm) {
@@ -73,9 +91,6 @@ public class DependencyTrackClient {
     return finalHost;
   }
 
-  private String buildBody(String projectId, File bom) {
-    return "{" + "\"project\": \"" + projectId + "\", \"bom\": \"" + encodeBom(bom) + "\" }";
-  }
 
   private String encodeBom(File bom) {
     LOGGER.info("Reading bom from {}", bom.getAbsolutePath());

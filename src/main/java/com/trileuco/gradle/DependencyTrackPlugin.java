@@ -7,9 +7,11 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
+import org.gradle.api.tasks.TaskContainer;
 
 public class DependencyTrackPlugin implements Plugin<Project> {
   private static final Logger LOGGER = Logging.getLogger(DependencyTrackPlugin.class);
+  private static final String DEFAULT_GROUP = "dependency-track";
 
   @Override
   public void apply(Project project) {
@@ -20,10 +22,17 @@ public class DependencyTrackPlugin implements Plugin<Project> {
             .create(DEPENDENCY_TRACK_EXTENSION_NAME, DependencyTrackExtension.class);
 
     LOGGER.debug("Adding '{}' task to '{}'", DEPENDENCY_TRACK_TASK_NAME, project);
-    DependencyTrackTask dependencyTrack =
-        project.getTasks().create(DEPENDENCY_TRACK_TASK_NAME, DependencyTrackTask.class, extension);
-    dependencyTrack.setDescription(
-        "Publishes generated bom in " + project + " to Dependency-Track server.");
-    dependencyTrack.setGroup("Reporting");
+    TaskContainer projectTasks = project.getTasks();
+
+    UploadTask uploadTask =
+            projectTasks.create(UploadTask.TASK_NAME, UploadTask.class, extension);
+    uploadTask.setGroup(DEFAULT_GROUP);
+    uploadTask.setDescription("Upload bom to Dependency-Track server.");
+
+    DeleteTask deleteTask =
+            projectTasks.create(DeleteTask.TASK_NAME, DeleteTask.class, extension);
+    deleteTask.setGroup(DEFAULT_GROUP);
+    deleteTask.setDescription("Delete project from Dependency-Track server.");
+
   }
 }

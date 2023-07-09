@@ -6,6 +6,8 @@ import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Property;
 
+import javax.inject.Singleton;
+
 public class DependencyTrackExtension {
   public static final String DEPENDENCY_TRACK_EXTENSION_NAME = "dependencyTrack";
   public static final String DEPENDENCY_TRACK_TASK_NAME = "dependencyTrack";
@@ -13,6 +15,8 @@ public class DependencyTrackExtension {
   private final Property<String> host;
   private final Property<String> realm;
   private final Property<String> apiKey;
+  private final Property<String> projectName;
+  private final Property<String> projectVersion;
   private final Property<String> projectId;
   private final RegularFileProperty bomFile;
 
@@ -23,6 +27,8 @@ public class DependencyTrackExtension {
     this.realm = objects.property(String.class).convention("/api/v1/bom");
     this.bomFile =
         objects.fileProperty().fileValue(new File(project.getBuildDir(), "reports/bom.xml"));
+    this.projectName = objects.property(String.class).convention(project.getName());
+    this.projectVersion = objects.property(String.class).convention(project.getVersion().toString());
   }
 
   public void validate() {
@@ -33,10 +39,6 @@ public class DependencyTrackExtension {
     if (!apiKey.isPresent()) {
       throw new IllegalArgumentException(
           "'apiKey' is not set. Set the 'apiKey' to access the dependency-track server.");
-    }
-    if (!projectId.isPresent()) {
-      throw new IllegalArgumentException(
-          "'projectId' is not set. This is the uuid of the associated dependency-track project.");
     }
     if (bomFile.getAsFile().isPresent() && !bomFile.getAsFile().get().exists()) {
       throw new IllegalArgumentException(
@@ -58,6 +60,14 @@ public class DependencyTrackExtension {
 
   public Property<String> getProjectId() {
     return projectId;
+  }
+
+  public Property<String> getProjectName() {
+    return projectName;
+  }
+
+  public Property<String> getProjectVersion() {
+    return projectVersion;
   }
 
   public RegularFileProperty getBomFile() {
