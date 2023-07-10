@@ -1,23 +1,28 @@
 package com.trileuco.gradle;
 
-import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.TaskAction;
 
-public class DependencyTrackTask extends DefaultTask {
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
+@Singleton
+public class UploadTask extends DefaultTask {
   private final DependencyTrackExtension extension;
+  public static final String TASK_NAME = "upload";
 
   @Inject
-  public DependencyTrackTask(DependencyTrackExtension extension) {
+  public UploadTask(DependencyTrackExtension extension) {
     this.extension = extension;
   }
 
   @TaskAction
   public void publish() {
-    extension.validate();
     DependencyTrackClient client =
         new DependencyTrackClient(
             extension.getHost().get(), extension.getRealm().get(), extension.getApiKey().get());
-    client.publish(extension.getProjectId().get(), extension.getBomFile().get().getAsFile());
+    client.publish(extension.getProjectName().get(),
+            extension.getProjectVersion().get(),
+            extension.getBomFile().get().getAsFile());
   }
 }
