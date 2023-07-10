@@ -22,7 +22,8 @@ Configure your custom properties:
 dependencyTrack {
     host = 'your-dtrack-server-host'
     apiKey = 'your-dtrack-api-key'
-    projectId = 'your-dtrack-project-identifier'
+    projectName = 'your-project-name'   //optional
+    projectVersion = 'your-project-version'   //optional
 }
 tasks.named('dependencyTrack') {
     dependsOn cyclonedxBom
@@ -43,7 +44,8 @@ dependencyTrack {
     host = 'http://localhost:8081'
     realm = '/api/v1/bom'
     bomFile= file("${buildDir.path}/reports/bom.xml")
-    projectId = ''
+    projectName = ''
+    projectVersion = ''
     apiKey = ''
 }
 tasks.named('dependencyTrack') {
